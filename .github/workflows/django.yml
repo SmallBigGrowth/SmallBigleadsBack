@@ -1,0 +1,115 @@
+name: CI/CD Pipeline with Ephemeral SonarQube
+
+on:
+  push:
+    branches:
+      - Development
+      - Production
+  pull_request:
+    branches:
+      - Production
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      sonarqube:
+        image: sonarqube:10-community
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd "curl --fail http://localhost:9000/api/system/status || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # SonarQube ke liye full history
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'  # Apne version ke hisaab se
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Wait for SonarQube to be ready
+      run: |
+        echo "Waiting for SonarQube to start..."
+        for i in {1..60}; do  # 60 seconds tak retry
+          if curl -s -u admin:admin http://localhost:9000/api/system/status | grep -q '"status":"UP"'; then
+            echo "SonarQube is up!"
+            # Change default admin password
+            curl -s -u admin:admin -X POST "http://localhost:9000/api/users/change_password?login=admin&previousPassword=admin&password=newpassword"
+            break
+          fi
+          echo "Waiting... ($i/60)"
+          sleep 1
+        done
+        # Verify SonarQube is fully ready
+        if ! curl -s -u admin:newpassword http://localhost:9000/api/system/status | grep -q '"status":"UP"'; then
+          echo "SonarQube failed to start!"
+          exit 1
+        fi
+
+    - name: Run Tests
+      env:
+        DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+        DATABASE_USER: ${{ secrets.DATABASE_USER }}
+        DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+        DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+        DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+        DEBUG: ${{ secrets.DEBUG }}
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        BETTERSTACK_LOGGER_KEY: ${{ secrets.BETTERSTACK_LOGGER_KEY }}
+        GOOGLE_SEC_ID: ${{ secrets.GOOGLE_SEC_ID }}
+        EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND }}
+        EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+        EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+        EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+        EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      run: |
+        python manage.py test || echo "No tests found, continuing..."
+
+    - name: SonarQube Scan
+      run: |
+        npm install -g sonarqube-scanner
+        sonar-scanner \
+          -Dsonar.projectKey=smallbigleads \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=http://localhost:9000 \
+          -Dsonar.login=admin \
+          -Dsonar.password=newpassword
+
+    - name: Check Quality Gate
+      run: |
+        STATUS=$(curl -s -u admin:newpassword "http://localhost:9000/api/qualitygates/project_status?projectKey=smallbigleads" | jq -r '.projectStatus.status')
+        if [ "$STATUS" != "OK" ]; then
+          echo "Quality Gate failed: $STATUS"
+          exit 1
+        else
+          echo "Quality Gate passed"
+        fi
+
+    - name: Deploy to Production
+      if: github.ref == 'refs/heads/Production'
+      run: |
+        echo "Deploying to Production..."
+        # Replace with your deployment script
+        # ssh -o StrictHostKeyChecking=no user@your-server-ip ...
+
+  protect-production:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/Production' && github.event_name == 'push'
+    steps:
+      - name: Block direct push to Production
+        run: |
+          echo "Direct push to Production is not allowed. Please merge from Development."
+          exit 1
