@@ -92,12 +92,21 @@ Create a `.env` file in the project root:
 
 ```
 # .env (no trailing spaces)
-DATABASE_NAME=your_database_name
-DATABASE_USER=postgres
-DATABASE_PASSWORD=your_password
-DATABASE_HOST=localhost
-DATABASE_PORT=5432
-
+DATABASE_NAME=database name
+DATABASE_USER=database user
+DATABASE_PASSWORD=databsse password
+DATABASE_HOST=database host
+DATABASE_PORT=database port
+DEBUG=False
+GOOGLE_CLIENT_ID=google client id
+BETTERSTACK_LOGGER_KEY=betterstack logger key
+GOOGLE_SEC_ID=GOCSPX-google secret
+EMAIL_BACKEND=email backend
+EMAIL_HOST=email host
+EMAIL_PORT=email port
+EMAIL_USE_TLS=email tls
+EMAIL_HOST_USER=email host user
+EMAIL_HOST_PASSWORD=email host password
 
 ```
 
