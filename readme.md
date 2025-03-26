@@ -174,7 +174,7 @@ git merge feature/your-feature-name
 Merge development into production for deployment:
 
 ```bash
-git checkout main
+git checkout Production
 git merge development
 ```
 
