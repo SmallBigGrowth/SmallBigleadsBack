@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,9 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-60wzru63+3m$!=h$3&)7_0@7t8jlldufkm%0sk@kjb*==z8g@b'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +39,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'users',
+    'oauth',
+    'jwt_utils',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt.token_blacklist',
 ]
 
 MIDDLEWARE = [
@@ -73,12 +81,22 @@ WSGI_APPLICATION = 'smallbigleads.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+DATABASE_NAME = config("DATABASE_NAME")
+DATABASE_USER = config("DATABASE_USER")
+DATABASE_PASSWORD = config("DATABASE_PASSWORD")
+DATABASE_HOST = config("DATABASE_HOST")
+DATABASE_PORT = config("DATABASE_PORT", default="5432")
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": DATABASE_NAME,
+        "USER": DATABASE_USER,
+        "PASSWORD": DATABASE_PASSWORD,
+        "HOST": DATABASE_HOST,
+        "PORT": DATABASE_PORT,
     }
 }
+
 
 
 # Password validation
@@ -99,7 +117,18 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = 'users.User'
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
 
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'BLACKLIST_AFTER_ROTATION': True,
+}
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -111,6 +140,42 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "logtail": {
+            "class": "logtail.LogtailHandler",
+            "source_token": config("BETTERSTACK_LOGGER_KEY"),
+            "level": "INFO"
+        },
+        "console": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG"
+        }
+    },
+    "loggers": {
+        "": {
+            "handlers": ["logtail", "console"],
+            "level": "INFO",
+            "propagate": True
+        },
+        "django": {
+            "handlers": ["logtail", "console"],
+            "level": "INFO",
+            "propagate": False
+        }
+    }
+}
+
+EMAIL_BACKEND = config("EMAIL_BACKEND")
+EMAIL_HOST=config("EMAIL_HOST")
+EMAIL_PORT=config("EMAIL_PORT")
+EMAIL_USE_TLS=config("EMAIL_USE_TLS")
+EMAIL_HOST_USER=config("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD=config("EMAIL_HOST_PASSWORD")
+FRONTEND_URL = 'http://localhost:3000'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
