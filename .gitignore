@@ -1,0 +1,26 @@
+*.sqlite3
+
+*.json
+
+*.zip
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+myenv
+myvenv
+.env
+celerybeat-schedule
+django.log
+dump.rdb
+myenv/pyvenv.cfg
+
+## Temporary add the following files in git ignore
+migrations
+yaksha/settings
+__pycache__
