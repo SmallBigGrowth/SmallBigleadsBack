@@ -154,11 +154,6 @@ Check for running processes (e.g., on port 8000):
 lsof -i :8000
 ```
 
-Kill a process if needed (replace `<PID>` with the actual process ID):
-
-```bash
-kill <PID>
-```
 
 ---
 
@@ -200,4 +195,3 @@ git merge development
 ## Troubleshooting
 
 - If the server doesn’t start, check port availability or kill conflicting processes.
-- Verify `.env` variables are correctly loaded in `settings/base.py`.
