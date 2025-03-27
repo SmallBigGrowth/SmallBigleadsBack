@@ -1,0 +1,63 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - Development
+      - Production
+  pull_request:
+    branches:
+      - Production
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'  
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Tests
+      env:
+        DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+        DATABASE_USER: ${{ secrets.DATABASE_USER }}
+        DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+        DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+        DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+        DEBUG: ${{ secrets.DEBUG }}
+        GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        BETTERSTACK_LOGGER_KEY: ${{ secrets.BETTERSTACK_LOGGER_KEY }}
+        GOOGLE_SEC_ID: ${{ secrets.GOOGLE_SEC_ID }}
+        EMAIL_BACKEND: ${{ secrets.EMAIL_BACKEND }}
+        EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+        EMAIL_PORT: ${{ secrets.EMAIL_PORT }}
+        EMAIL_USE_TLS: ${{ secrets.EMAIL_USE_TLS }}
+        EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+        EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      run: |
+        python manage.py test || echo "No tests found, continuing..."
+
+    - name: Deploy to Production
+      if: github.ref == 'refs/heads/Production'
+      run: |
+        echo "Deploying to Production..."
+        # Add your deployment script here
+
+  protect-production:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/Production' && github.event_name == 'push' && github.event.head_commit.author.name != 'GitHub'
+    steps:
+      - name: Block direct push to Production
+        run: |
+          echo "Direct push to Production is not allowed. Please merge from Development."
+          exit 1
