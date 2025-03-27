@@ -195,3 +195,4 @@ git merge development
 ## Troubleshooting
 
 - If the server doesn’t start, check port availability or kill conflicting processes.
+- Verify `.env` variables are correctly loaded in `settings/base.py`.
