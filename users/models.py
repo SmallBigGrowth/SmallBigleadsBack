@@ -26,13 +26,7 @@ class UserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
-class SubscriptionPlan(models.Model):
-    name = models.CharField(max_length=100)
-    price = models.DecimalField(max_digits=8, decimal_places=2)
-    duration_days = models.PositiveIntegerField(default=30)
-
-    def __str__(self):
-        return self.name
+from subscriptions . models import SubscriptionPlan
 
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -67,6 +61,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_2fa_enabled = models.BooleanField(default=False)
     otp_secret = models.CharField(max_length=32, blank=True, null=True)
     temp_new_email = models.EmailField(null=True, blank=True)
+    razorpay_customer_id = models.CharField(max_length=255, blank=True, null=True)
 
     objects = UserManager()
 
