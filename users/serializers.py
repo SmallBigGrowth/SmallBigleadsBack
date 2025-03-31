@@ -41,7 +41,7 @@ class LoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField(read_only=True)
     first_name = serializers.CharField(read_only=True)
     last_name = serializers.CharField(read_only=True)
-    subscription_plan = serializers.SlugRelatedField(slug_field='name', read_only=True)
+    subscription_plan = serializers.SlugRelatedField(slug_field='id', read_only=True)
     referred_by = serializers.SlugRelatedField(slug_field='email', read_only=True)
     tokens = serializers.SerializerMethodField()
 

@@ -21,5 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('user/', include('users.urls')),
     path('oauth/', include('oauth.urls')),
+    path('subscription/', include('subscriptions.urls')),
     path('token-refresh/', include('jwt_utils.urls')),
 ]
