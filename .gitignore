@@ -20,7 +20,6 @@ django.log
 dump.rdb
 myenv/pyvenv.cfg
 
-## Temporary add the following files in git ignore
-migrations
+
 yaksha/settings
 __pycache__
