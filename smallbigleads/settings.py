@@ -181,8 +181,12 @@ FRONTEND_URL = 'http://localhost:3000'
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-
+import os
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Yeh folder static files collect karega
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),  # Optional: Agar aapne custom static files rakhe hain
+]
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
