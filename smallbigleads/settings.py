@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'users',
     'oauth',
+    "corsheaders",
     'jwt_utils',
     'rest_framework',
     'rest_framework.authtoken',
@@ -51,6 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -193,3 +195,7 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 RAZORPAY_KEY_ID=config("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET=config("RAZORPAY_KEY_SECRET")
+
+CORS_ALLOWED_ORIGINS = [
+    "https://smallbigleadsfront2.vercel.app",
+]
