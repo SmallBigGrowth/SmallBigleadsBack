@@ -198,4 +198,5 @@ RAZORPAY_KEY_SECRET=config("RAZORPAY_KEY_SECRET")
 
 CORS_ALLOWED_ORIGINS = [
     "https://smallbigleadsfront2.vercel.app",
+    "localhost:3000"
 ]
