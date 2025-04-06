@@ -201,10 +201,11 @@ STATICFILES_DIRS = [
 # Better Contact API Settings
 BETTER_CONTACT_API_KEY = config("BETTER_CONTACT_API_KEY")
 HUNTER_API_KEY = config("HUNTER_API_KEY")
-DATAGMA_API_KEY = "your_datagma_api_key"
+APOLLO_API_KEY = config("APOLLO_API_KEY")
+
+DATAGMA_API_KEY = config("DATAGMA_API_KEY")
 SNOV_API_KEY = "your_snov_api_key"
 FINDTHATLEAD_API_KEY = "your_findthatlead_api_key"
-APOLLO_API_KEY = "your_apollo_api_key"
 SOCIETEINFO_API_KEY = "your_societeinfo_api_key"
 PROSPEO_API_KEY = "your_prospeo_api_key"
 CONTACTOUT_API_KEY = "your_contactout_api_key"
@@ -227,5 +228,7 @@ RAZORPAY_KEY_SECRET=config("RAZORPAY_KEY_SECRET")
 
 CORS_ALLOWED_ORIGINS = [
     "https://smallbigleadsfront2.vercel.app",
-    "https://localhost:3000"
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+
 ]
