@@ -199,7 +199,7 @@ STATICFILES_DIRS = [
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field\
 
 # Better Contact API Settings
-BETTER_CONTACT_API_KEY = EMAIL_BACKEND = config("BETTER_CONTACT_API_KEY")
+BETTER_CONTACT_API_KEY = config("BETTER_CONTACT_API_KEY")
 HUNTER_API_KEY = config("HUNTER_API_KEY")
 DATAGMA_API_KEY = "your_datagma_api_key"
 SNOV_API_KEY = "your_snov_api_key"
