@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ContactEnrichmentViewSet, BulkContactEnrichmentViewSet,EnrichmentView
+from .views import ContactEnrichmentViewSet, BulkContactEnrichmentViewSet,EmailLookupView
 
 urlpatterns = [
     path('contact-enrichment/enrich_contact/',
@@ -17,5 +17,5 @@ urlpatterns = [
     path('bulk-enrichment/recent_files/',
          BulkContactEnrichmentViewSet.as_view({'get': 'recent_files'}),
          name='recent-files'),
-    path("enrich/", EnrichmentView.as_view(), name="enrich"),
+    path("enrich-all-tools/", EmailLookupView.as_view(), name="enrich-all-tools"),
 ]

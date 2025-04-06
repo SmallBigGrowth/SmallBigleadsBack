@@ -71,215 +71,285 @@ class BetterContactAPI:
             print("Error details:", str(e))
             print("Response content:", e.response.text if hasattr(e, 'response') else "No response content")
             raise Exception(f"API request failed: {str(e)}")
-
+# services.py
 import requests
 from django.conf import settings
+import time
+from typing import Dict, List, Any, Optional
 
 class DataEnrichmentService:
     def __init__(self):
         self.api_keys = {
             "datagma": settings.DATAGMA_API_KEY,
-            "snov": settings.SNOV_API_KEY,
-            "findthatlead": settings.FINDTHATLEAD_API_KEY,
             "hunter": settings.HUNTER_API_KEY,
             "apollo": settings.APOLLO_API_KEY,
-            "societeinfo": settings.SOCIETEINFO_API_KEY,
-            "prospeo": settings.PROSPEO_API_KEY,
-            "contactout": settings.CONTACTOUT_API_KEY,
-            "icypeas": settings.ICYPEAS_API_KEY,
-            "enrow": settings.ENROW_API_KEY,
-            "anymailfinder": settings.ANYMAILFINDER_API_KEY,
-            "rocketreach": settings.ROCKETREACH_API_KEY,
-            "people_data_labs": settings.PEOPLE_DATA_LABS_API_KEY,
-            "enrichso": settings.ENRICHSO_API_KEY,
-            "kendo": settings.KENDO_API_KEY,
-            "nimbler": settings.NIMBLER_API_KEY,
-            "tomba": settings.TOMBA_API_KEY,
-            "trueinbox": settings.TRUEINBOX_API_KEY,
-            "forager": settings.FORAGER_API_KEY,
-            "usebouncer": settings.USEBOUNCER_API_KEY,
-            "cleon1": settings.CLEON1_API_KEY,
         }
 
-    def call_api(self, tool_name, endpoint, payload=None, method="GET"):
-        """
-        Generic method to call APIs for different tools.
-        """
-        api_key = self.api_keys.get(tool_name.lower())
-        if not api_key:
-            raise Exception(f"API key for {tool_name} is not configured.")
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
-        try:
-            if method == "GET":
-                response = requests.get(endpoint, headers=headers, params=payload)
-            elif method == "POST":
-                response = requests.post(endpoint, headers=headers, json=payload)
-            else:
-                raise Exception("Unsupported HTTP method.")
-
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"API request to {tool_name} failed: {str(e)}")
-
-    def enrich_email(self, tool_name, email):
-        """
-        Enrich email using the specified tool.
-        """
-        if tool_name.lower() == "hunter":
-            endpoint = "https://api.hunter.io/v2/email-finder"
-            payload = {"email": email}
-            return self.call_api(tool_name, endpoint, payload)
-
-        elif tool_name.lower() == "snov":
-            endpoint = "https://api.snov.io/v1/get-emails-from-names"
-            payload = {"email": email}
-            return self.call_api(tool_name, endpoint, payload)
-
-
-        else:
-            raise Exception(f"Tool {tool_name} is not supported for email enrichment.")
-
-    def enrich_phone(self, tool_name, phone_number):
-        """
-        Enrich phone number using the specified tool.
-        """
-        if tool_name.lower() == "apollo":
-            endpoint = "https://api.apollo.io/v1/phone-enrichment"
-            payload = {"phone_number": phone_number}
-            return self.call_api(tool_name, endpoint, payload)
-
-
-        else:
-            raise Exception(f"Tool {tool_name} is not supported for phone enrichment.")
-
-
-import requests
-from django.conf import settings
-
-class DataEnrichmentService:
-    def __init__(self):
-        self.api_keys = {
-            "datagma": settings.DATAGMA_API_KEY,
-            "snov": settings.SNOV_API_KEY,
-            "findthatlead": settings.FINDTHATLEAD_API_KEY,
-            "hunter": settings.HUNTER_API_KEY,
-            "apollo": settings.APOLLO_API_KEY,
-            "societeinfo": settings.SOCIETEINFO_API_KEY,
-            "prospeo": settings.PROSPEO_API_KEY,
-            "contactout": settings.CONTACTOUT_API_KEY,
-            "icypeas": settings.ICYPEAS_API_KEY,
-            "enrow": settings.ENROW_API_KEY,
-            "anymailfinder": settings.ANYMAILFINDER_API_KEY,
-            "rocketreach": settings.ROCKETREACH_API_KEY,
-            "people_data_labs": settings.PEOPLE_DATA_LABS_API_KEY,
-            "enrichso": settings.ENRICHSO_API_KEY,
-            "kendo": settings.KENDO_API_KEY,
-            "nimbler": settings.NIMBLER_API_KEY,
-            "tomba": settings.TOMBA_API_KEY,
-            "trueinbox": settings.TRUEINBOX_API_KEY,
-            "forager": settings.FORAGER_API_KEY,
-            "usebouncer": settings.USEBOUNCER_API_KEY,
-            "cleon1": settings.CLEON1_API_KEY,
-        }
-
-    def call_api(self, tool_name, endpoint, payload=None, method="GET"):
-        """
-        Generic method to call APIs for different tools.
-        """
-        api_key = self.api_keys.get(tool_name.lower())
-        if not api_key:
-            raise Exception(f"API key for {tool_name} is not configured.")
-
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-
-        try:
-            if method == "GET":
-                response = requests.get(endpoint, headers=headers, params=payload)
-            elif method == "POST":
-                response = requests.post(endpoint, headers=headers, json=payload)
-            else:
-                raise Exception("Unsupported HTTP method.")
-
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"API request to {tool_name} failed: {str(e)}")
-
-    def enrich_email(self, tool_name, email):
-        """
-        Enrich email using the specified tool.
-        """
-        if tool_name.lower() == "hunter":
-            endpoint = f"https://api.hunter.io/v2/people/find"
-            params = {
-                "email": email,
-                "api_key": self.api_keys["hunter"]  
+        self.tool_configs = {
+            "hunter": {
+                "icon": "🦊",
+                "name": "Hunter",
+                "endpoint": "https://api.hunter.io/v2/email-finder",
+                "method": "GET",
+                "requires_auth": True,
+                "auth_type": "param",
+                "auth_param": "api_key",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "datagma": {
+                "icon": "⚡",
+                "name": "Datagma",
+                "endpoint": "https://gateway.datagma.net/api/ingress/v8/findEmail",
+                "method": "GET",
+                "requires_auth": True,
+                "auth_type": "param",
+                "auth_param": "apiId",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "apollo": {
+                "icon": "🚀",
+                "name": "Apollo",
+                "endpoint": "https://api.apollo.io/api/v1/contacts",
+                "method": "POST",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "x-api-key",
+                "timeout": 30,
+                "retry_count": 2
             }
+        }
 
+    def format_response(self, tool: str, status: str, details: Optional[Dict] = None, error: Optional[str] = None) -> Dict:
+        response = {
+            "activity": "Email enrichment and qualification",
+            "tool": f"{self.tool_configs[tool]['icon']} {self.tool_configs[tool]['name']}",
+            "status": status
+        }
+        if details:
+            response["details"] = details
+        if error:
+            response["error"] = error
+        return response
+
+    def make_request(self, tool: str, endpoint: str, params: Dict = None, headers: Dict = None, timeout: int = 30, method: str = None) -> Dict:
+        headers = headers or {"accept": "application/json"}
+        retry_count = self.tool_configs[tool].get("retry_count", 1)
+        method = method or self.tool_configs[tool].get("method", "GET")
+
+        for attempt in range(retry_count):
             try:
-                response = requests.get(endpoint, params=params)
-                response.raise_for_status()
-                data = response.json()
+                if method == "GET":
+                    response = requests.get(endpoint, params=params, headers=headers, timeout=timeout)
+                elif method == "POST":
+                    response = requests.post(endpoint, json=params, headers=headers, timeout=timeout)
 
-                if "data" in data:
-                    person_data = data["data"]
-                    return {
-                        "activity": "Email enrichment and qualification",
-                        "tool": "⚡ Hunter",
-                        "status": "Email found",
-                        "details": {
-                            "full_name": person_data.get("name", {}).get("fullName"),
-                            "first_name": person_data.get("name", {}).get("givenName"),
-                            "last_name": person_data.get("name", {}).get("familyName"),
-                            "email": person_data.get("email"),
-                            "location": person_data.get("location"),
-                            "company": person_data.get("employment", {}).get("name"),
-                            "position": person_data.get("employment", {}).get("title"),
-                            "linkedin": person_data.get("linkedin", {}).get("handle"),
-                            "twitter": person_data.get("twitter", {}).get("handle"),
-                            "phone": person_data.get("phone")
-                        }
-                    }
-                else:
-                    return {
-                        "activity": "Email enrichment and qualification",
-                        "tool": "⚡ Hunter",
-                        "status": "Email not found"
-                    }
+                print(f"Response from {tool} (Attempt {attempt + 1}): Status={response.status_code}, Content={response.text[:200]}")
+
+                if response.status_code == 404:
+                    return {"status": "not_found"}
+
+                response.raise_for_status()
+                return response.json()
 
             except requests.exceptions.RequestException as e:
-                if hasattr(e, 'response') and e.response.status_code == 404:
-                    return {
-                        "activity": "Email enrichment and qualification",
-                        "tool": "⚡ Hunter",
-                        "status": "Email not found"
+                if attempt == retry_count - 1:
+                    error_msg = str(e)
+                    if hasattr(e, 'response') and e.response:
+                        error_msg = f"{error_msg} - Response: {e.response.text}"
+                    raise Exception(error_msg)
+                time.sleep(1)
+
+    def find_email(self, tool_name: str, contact_details: Dict) -> Dict:
+        tool_name = tool_name.lower()
+
+        if tool_name not in self.tool_configs:
+            raise Exception(f"Tool {tool_name} is not supported for email lookup.")
+
+        if tool_name == "hunter":
+            try:
+                params = {
+                    "api_key": self.api_keys["hunter"],
+                    "first_name": contact_details.get("first_name"),
+                    "last_name": contact_details.get("last_name"),
+                    "domain": contact_details.get("company_domain")
+                }
+
+                data = self.make_request("hunter", self.tool_configs["hunter"]["endpoint"], params)
+
+                if data.get("data", {}).get("email"):
+                    # Extract phone numbers from Hunter response
+                    phone_numbers = []
+                    if data["data"].get("phone"):
+                        phone_numbers.append(data["data"]["phone"])
+                    if data["data"].get("mobile"):
+                        phone_numbers.append(data["data"]["mobile"])
+                    if data["data"].get("direct_phone"):
+                        phone_numbers.append(data["data"]["direct_phone"])
+
+                    details = {
+                        "full_name": f"{contact_details.get('first_name')} {contact_details.get('last_name')}",
+                        "first_name": contact_details.get("first_name"),
+                        "last_name": contact_details.get("last_name"),
+                        "email": data["data"]["email"],
+                        "location": data["data"].get("location"),
+                        "company": contact_details.get("company_name"),
+                        "position": data["data"].get("position"),
+                        "linkedin": contact_details.get("linkedin_profile", "").split("/")[-1],
+                        "twitter": data["data"].get("twitter"),
+                        "phone_numbers": phone_numbers if phone_numbers else None,
+                        "direct_phone": data["data"].get("direct_phone"),
+                        "mobile_phone": data["data"].get("mobile"),
+                        "confidence_score": data["data"].get("score", 0)
                     }
-                else:
-                    raise Exception(f"Hunter API request failed: {str(e)}")
+                    return self.format_response("hunter", "Email found", details)
 
+                return self.format_response("hunter", "Email not found")
 
-        else:
-            raise Exception(f"Tool {tool_name} is not supported for email enrichment.")
+            except Exception as e:
+                return self.format_response("hunter", "Error", error=str(e))
 
-    def enrich_phone(self, tool_name, phone_number):
-        """
-        Enrich phone number using the specified tool.
-        """
-        if tool_name.lower() == "apollo":
-            endpoint = "https://api.apollo.io/v1/phone-enrichment"
-            payload = {"phone_number": phone_number}
-            return self.call_api(tool_name, endpoint, payload)
+        elif tool_name == "datagma":
+            try:
+                params = {
+                    "apiId": self.api_keys["datagma"],
+                    "firstName": contact_details.get("first_name"),
+                    "lastName": contact_details.get("last_name"),
+                    "company": contact_details.get("company_domain")
+                }
 
+                if contact_details.get("linkedin_profile"):
+                    params["linkedinUrl"] = contact_details["linkedin_profile"]
 
+                data = self.make_request("datagma", self.tool_configs["datagma"]["endpoint"], params)
 
-        else:
-            raise Exception(f"Tool {tool_name} is not supported for phone enrichment.")
+                if data.get("email"):
+                    # Extract phone numbers from Datagma response
+                    phone_numbers = []
+                    if data.get("phone"):
+                        phone_numbers.append(data["phone"])
+                    if data.get("mobile"):
+                        phone_numbers.append(data["mobile"])
+                    if data.get("directPhone"):
+                        phone_numbers.append(data["directPhone"])
+
+                    details = {
+                        "email": data["email"],
+                        "first_name": data.get("firstName"),
+                        "last_name": data.get("lastName", ""),
+                        "full_name": f"{data.get('firstName', '')} {data.get('lastName', '')}".strip(),
+                        "company": data.get("company"),
+                        "phone_numbers": phone_numbers if phone_numbers else None,
+                        "direct_phone": data.get("directPhone"),
+                        "mobile_phone": data.get("mobile"),
+                        "confidence_score": data.get("confidenceScore"),
+                        "source": data.get("source")
+                    }
+                    return self.format_response("datagma", "Email found", details)
+
+                return self.format_response("datagma", "Email not found")
+
+            except Exception as e:
+                return self.format_response("datagma", "Error", error=str(e))
+
+        elif tool_name == "apollo":
+            try:
+                headers = {
+                    "accept": "application/json",
+                    "Content-Type": "application/json",
+                    "x-api-key": self.api_keys["apollo"]
+                }
+
+                params = {
+                    "first_name": contact_details.get("first_name"),
+                    "last_name": contact_details.get("last_name"),
+                    "organization_name": contact_details.get("company_name"),
+                    "website_url": f"https://www.{contact_details.get('company_domain')}"
+                }
+
+                data = self.make_request(
+                    "apollo",
+                    self.tool_configs["apollo"]["endpoint"],
+                    params=params,
+                    headers=headers,
+                    method="POST"
+                )
+
+                if data.get("contact", {}).get("email"):
+                    # Extract phone numbers from Apollo response
+                    phone_numbers = []
+                    if data["contact"].get("phone_number"):
+                        phone_numbers.append(data["contact"]["phone_number"])
+                    if data["contact"].get("mobile_phone"):
+                        phone_numbers.append(data["contact"]["mobile_phone"])
+                    if data["contact"].get("direct_phone"):
+                        phone_numbers.append(data["contact"]["direct_phone"])
+
+                    details = {
+                        "full_name": f"{contact_details.get('first_name')} {contact_details.get('last_name')}",
+                        "first_name": data["contact"].get("first_name"),
+                        "last_name": data["contact"].get("last_name"),
+                        "email": data["contact"]["email"],
+                        "location": data["contact"].get("location"),
+                        "company": data["contact"].get("organization_name"),
+                        "position": data["contact"].get("title"),
+                        "linkedin": data["contact"].get("linkedin_url", "").split("/")[-1],
+                        "phone_numbers": phone_numbers if phone_numbers else None,
+                        "direct_phone": data["contact"].get("direct_phone"),
+                        "mobile_phone": data["contact"].get("mobile_phone"),
+                        "confidence_score": data["contact"].get("email_confidence", 0)
+                    }
+                    return self.format_response("apollo", "Email found", details)
+
+                return self.format_response("apollo", "Email not found")
+
+            except Exception as e:
+                return self.format_response("apollo", "Error", error=str(e))
+
+    def get_email_data(self, contact_details: Dict) -> Dict:
+        results = []
+        tools = ["hunter", "datagma", "apollo"]
+        start_time = time.time()
+        successful_tools = 0
+        found_emails = 0
+        catch_all_domains = 0
+        found_email = None
+        found_phones = []
+
+        for tool in tools:
+            try:
+                result = self.find_email(tool, contact_details)
+                if result["status"] == "Email found" and result.get("details", {}).get("email"):
+                    successful_tools += 1
+                    found_emails += 1
+                    if not found_email:
+                        found_email = result["details"]["email"]
+                        # Collect phone numbers from the first successful result
+                        if result["details"].get("phone_numbers"):
+                            found_phones.extend(result["details"]["phone_numbers"])
+                elif result["status"] == "CatchAll domain":
+                    successful_tools += 1
+                    catch_all_domains += 1
+                results.append(result)
+            except Exception as e:
+                results.append(self.format_response(
+                    tool,
+                    "Error",
+                    error=str(e)
+                ))
+
+        execution_time = time.time() - start_time
+
+        return {
+            "activity": "Email enrichment and qualification",
+            "email": found_email,
+            "phone_numbers": found_phones if found_phones else None,
+            "input_data": contact_details,
+            "total_tools_used": len(tools),
+            "successful_tools": successful_tools,
+            "found_emails": found_emails,
+            "catch_all_domains": catch_all_domains,
+            "execution_time": f"{execution_time:.2f} seconds",
+            "results": results
+        }

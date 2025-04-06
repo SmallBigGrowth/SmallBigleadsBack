@@ -97,31 +97,44 @@ class BulkContactEnrichmentViewSet(viewsets.ViewSet):
         serializer = BulkContactEnrichmentSerializer(recent_files, many=True)
         return Response(serializer.data)
 
+# views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .services import DataEnrichmentService
 
-class EnrichmentView(APIView):
+class EmailLookupView(APIView):
     def post(self, request):
-        tool_name = request.data.get("tool_name")
-        email = request.data.get("email")
-        phone_number = request.data.get("phone_number")
+        contact_details = {
+            "first_name": request.data.get("first_name"),
+            "last_name": request.data.get("last_name"),
+            "company_name": request.data.get("company_name"),
+            "company_domain": request.data.get("company_domain"),
+            "linkedin_profile": request.data.get("linkedin_profile")
+        }
 
-        if not tool_name:
-            return Response({"error": "Tool name is required."}, status=status.HTTP_400_BAD_REQUEST)
+        required_fields = ["first_name", "last_name", "company_domain"]
+        missing_fields = [field for field in required_fields if not contact_details.get(field)]
 
-        enrichment_service = DataEnrichmentService()
+        if missing_fields:
+            return Response(
+                {
+                    "error": f"Missing required fields: {', '.join(missing_fields)}",
+                    "required_fields": required_fields
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
+        service = DataEnrichmentService()
         try:
-            if email:
-                result = enrichment_service.enrich_email(tool_name, email)
-            elif phone_number:
-                result = enrichment_service.enrich_phone(tool_name, phone_number)
-            else:
-                return Response({"error": "Email or phone number is required."}, status=status.HTTP_400_BAD_REQUEST)
-
+            result = service.get_email_data(contact_details)
             return Response(result, status=status.HTTP_200_OK)
-
         except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {
+                    "error": str(e),
+                    "detail": "An error occurred while looking up email"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
