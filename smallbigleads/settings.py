@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
     'subscriptions',
+    'contact'
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'smallbigleads.wsgi.application'
 
-
+REST_FRAMEWORK = {
+    # 'DEFAULT_AUTHENTICATION_CLASSES': [
+    #     'rest_framework_simplejwt.authentication.JWTAuthentication',
+    # ],
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+}
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -121,11 +131,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 AUTH_USER_MODEL = 'users.User'
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
-}
+
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
@@ -190,13 +196,36 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),  # Optional: Agar aapne custom static files rakhe hain
 ]
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
+# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field\
 
+BETTER_CONTACT_API_KEY = EMAIL_BACKEND = config("BETTER_CONTACT_API_KEY")
+HUNTER_API_KEY = config("HUNTER_API_KEY")
+
+DATAGMA_API_KEY = "your_datagma_api_key"
+SNOV_API_KEY = "your_snov_api_key"
+FINDTHATLEAD_API_KEY = "your_findthatlead_api_key"
+APOLLO_API_KEY = "your_apollo_api_key"
+SOCIETEINFO_API_KEY = "your_societeinfo_api_key"
+PROSPEO_API_KEY = "your_prospeo_api_key"
+CONTACTOUT_API_KEY = "your_contactout_api_key"
+ICYPEAS_API_KEY = "your_icypeas_api_key"
+ENROW_API_KEY = "your_enrow_api_key"
+ANYMAILFINDER_API_KEY = "your_anymailfinder_api_key"
+ROCKETREACH_API_KEY = "your_rocketreach_api_key"
+PEOPLE_DATA_LABS_API_KEY = "your_people_data_labs_api_key"
+ENRICHSO_API_KEY = "your_enrichso_api_key"
+KENDO_API_KEY = "your_kendo_api_key"
+NIMBLER_API_KEY = "your_nimbler_api_key"
+TOMBA_API_KEY = "your_tomba_api_key"
+TRUEINBOX_API_KEY = "your_trueinbox_api_key"
+FORAGER_API_KEY = "your_forager_api_key"
+USEBOUNCER_API_KEY = "your_usebouncer_api_key"
+CLEON1_API_KEY = "your_cleon1_api_key"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 RAZORPAY_KEY_ID=config("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET=config("RAZORPAY_KEY_SECRET")
 
 CORS_ALLOWED_ORIGINS = [
     "https://smallbigleadsfront2.vercel.app",
-    "localhost:3000"
+    "https://localhost:3000"
 ]
