@@ -23,4 +23,6 @@ urlpatterns = [
     path('oauth/', include('oauth.urls')),
     path('subscription/', include('subscriptions.urls')),
     path('token-refresh/', include('jwt_utils.urls')),
+    path('', include('contact.urls')),
+
 ]
