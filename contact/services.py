@@ -71,11 +71,26 @@ class BetterContactAPI:
             print("Error details:", str(e))
             print("Response content:", e.response.text if hasattr(e, 'response') else "No response content")
             raise Exception(f"API request failed: {str(e)}")
-# services.py
 import requests
 from django.conf import settings
 import time
 from typing import Dict, List, Any, Optional
+from urllib.parse import urlparse
+from datetime import datetime, timezone
+import hmac, hashlib
+
+def gen_signature(url: str, method: str, secret: str, timestamp: str = datetime.now(timezone.utc).isoformat()) -> str:
+    '''
+    Generate the signature for an API call
+    url: The URL to be called 
+    method: HTTP method (GET, POST, PUT, DELETE)
+    secret: API secret
+    timestamp: ISO 8601 UTC formatted timestamp
+    '''
+    endpoint = urlparse(url).path
+    payload = f"{method}{endpoint}{timestamp}".lower()
+    sign = hmac.new(secret.encode(), payload.encode(), hashlib.sha1).hexdigest()
+    return sign
 
 class DataEnrichmentService:
     def __init__(self):
@@ -83,6 +98,16 @@ class DataEnrichmentService:
             "datagma": settings.DATAGMA_API_KEY,
             "hunter": settings.HUNTER_API_KEY,
             "apollo": settings.APOLLO_API_KEY,
+            "prospeo": settings.PROSPEO_API_KEY,
+            "contactout": settings.CONTACTOUT_API_KEY,
+            "icypeas": "5cdc96fd6619467a9dc8fd3d9371cfc5f00859593d8343d0bace1ed022e362f4",
+            "anymailfinder": "ywD9j3pN6NHqF7PRgn8uTA16",
+            "enrichso": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1Nzg3NDJmODdhN2M3YmFmNjc2NSIsInR5cGUiOiJhcGkiLCJpYXQiOjE3NDA3MjQxMDl9.N_2KscRnxAnGavRdUEf2vuEiPoYWdRE_l7QjLRkv7Do",
+            "tomba": "ta_933y8vhkbw0uu7i4sdvnv23o8esm62cybuohh"  # Added Tomba API key
+        }
+
+        self.api_secrets = {
+            "tomba": "ts_b3aabab7-4435-4a14-96b8-8499281712e3"  # Added Tomba secret (optional)
         }
 
         self.tool_configs = {
@@ -118,6 +143,73 @@ class DataEnrichmentService:
                 "auth_param": "x-api-key",
                 "timeout": 30,
                 "retry_count": 2
+            },
+            "prospeo": {
+                "icon": "🎯",
+                "name": "Prospeo",
+                "endpoint_email": "https://api.prospeo.io/email-finder",
+                "endpoint_mobile": "https://api.prospeo.io/mobile-finder",
+                "method": "POST",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "X-KEY",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "contactout": {
+                "icon": "👥",
+                "name": "ContactOut",
+                "endpoint": "https://api.contactout.com/v1/people/linkedin",
+                "method": "GET",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "token",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "icypeas": {
+                "icon": "🌱",
+                "name": "Icypeas",
+                "endpoint": "https://app.icypeas.com/api/email-search",
+                "method": "POST",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "Authorization",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "anymailfinder": {
+                "icon": "📧",
+                "name": "Anymailfinder",
+                "endpoint": "https://api.anymailfinder.com/v5.0/search/person.json",
+                "method": "POST",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "Authorization",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "enrichso": {
+                "icon": "🔍",
+                "name": "Enrich.so",
+                "endpoint": "https://api.enrich.so/v1/api/find-email",
+                "method": "GET",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "Authorization",
+                "timeout": 30,
+                "retry_count": 2
+            },
+            "tomba": {
+                "icon": "📬",
+                "name": "Tomba",
+                "endpoint": "https://api.tomba.io/v1/email-finder",
+                "method": "GET",
+                "requires_auth": True,
+                "auth_type": "header",
+                "auth_param": "Authorization",
+                "timeout": 30,
+                "retry_count": 2
             }
         }
 
@@ -137,6 +229,12 @@ class DataEnrichmentService:
         headers = headers or {"accept": "application/json"}
         retry_count = self.tool_configs[tool].get("retry_count", 1)
         method = method or self.tool_configs[tool].get("method", "GET")
+        if self.tool_configs[tool].get("requires_auth"):
+            auth_type = self.tool_configs[tool].get("auth_type")
+            auth_param = self.tool_configs[tool].get("auth_param")
+
+            if auth_type == "header" and "Authorization" in auth_param:
+                headers["Authorization"] = f"Bearer {self.api_keys[tool]}"
 
         for attempt in range(retry_count):
             try:
@@ -145,7 +243,8 @@ class DataEnrichmentService:
                 elif method == "POST":
                     response = requests.post(endpoint, json=params, headers=headers, timeout=timeout)
 
-                print(f"Response from {tool} (Attempt {attempt + 1}): Status={response.status_code}, Content={response.text[:200]}")
+                print(f"Response from {tool} (Attempt {attempt + 1}): Status={response.status_code}")
+                print(f"Response content: {response.text[:500]}")
 
                 if response.status_code == 404:
                     return {"status": "not_found"}
@@ -179,7 +278,6 @@ class DataEnrichmentService:
                 data = self.make_request("hunter", self.tool_configs["hunter"]["endpoint"], params)
 
                 if data.get("data", {}).get("email"):
-                    # Extract phone numbers from Hunter response
                     phone_numbers = []
                     if data["data"].get("phone"):
                         phone_numbers.append(data["data"]["phone"])
@@ -225,7 +323,6 @@ class DataEnrichmentService:
                 data = self.make_request("datagma", self.tool_configs["datagma"]["endpoint"], params)
 
                 if data.get("email"):
-                    # Extract phone numbers from Datagma response
                     phone_numbers = []
                     if data.get("phone"):
                         phone_numbers.append(data["phone"])
@@ -277,7 +374,6 @@ class DataEnrichmentService:
                 )
 
                 if data.get("contact", {}).get("email"):
-                    # Extract phone numbers from Apollo response
                     phone_numbers = []
                     if data["contact"].get("phone_number"):
                         phone_numbers.append(data["contact"]["phone_number"])
@@ -307,9 +403,360 @@ class DataEnrichmentService:
             except Exception as e:
                 return self.format_response("apollo", "Error", error=str(e))
 
+        elif tool_name == "prospeo":
+            try:
+                headers = {
+                    "Content-Type": "application/json",
+                    "X-KEY": self.api_keys["prospeo"]
+                }
+
+                email_params = {
+                    "first_name": contact_details.get("first_name"),
+                    "last_name": contact_details.get("last_name"),
+                    "company": contact_details.get("company_domain")
+                }
+
+                print(f"Making email request to Prospeo with params: {email_params}")
+
+                email_data = self.make_request(
+                    "prospeo",
+                    self.tool_configs["prospeo"]["endpoint_email"],
+                    params=email_params,
+                    headers=headers,
+                    method="POST"
+                )
+
+                phone_numbers = []
+                mobile_data = {}
+                linkedin_url = contact_details.get("linkedin_profile")
+
+                if linkedin_url:
+                    if not linkedin_url.startswith("http"):
+                        linkedin_url = f"https://linkedin.com/in/{linkedin_url}"
+
+                    mobile_params = {
+                        "url": linkedin_url
+                    }
+
+                    print(f"Making mobile request to Prospeo with params: {mobile_params}")
+
+                    try:
+                        mobile_data = self.make_request(
+                            "prospeo",
+                            self.tool_configs["prospeo"]["endpoint_mobile"],
+                            params=mobile_params,
+                            headers=headers,
+                            method="POST"
+                        )
+
+                        if mobile_data.get("mobile"):
+                            phone_numbers.append(mobile_data["mobile"])
+                        if mobile_data.get("phone"):
+                            phone_numbers.append(mobile_data["phone"])
+                        if mobile_data.get("direct_phone"):
+                            phone_numbers.append(mobile_data["direct_phone"])
+
+                    except Exception as mobile_error:
+                        print(f"Error fetching mobile data from Prospeo: {str(mobile_error)}")
+
+                if email_data.get("email"):
+                    details = {
+                        "full_name": f"{contact_details.get('first_name')} {contact_details.get('last_name')}",
+                        "first_name": contact_details.get("first_name"),
+                        "last_name": contact_details.get("last_name"),
+                        "email": email_data["email"],
+                        "location": email_data.get("location"),
+                        "company": contact_details.get("company_name"),
+                        "position": email_data.get("position"),
+                        "linkedin": linkedin_url.split("/")[-1] if linkedin_url else None,
+                        "phone_numbers": phone_numbers if phone_numbers else None,
+                        "direct_phone": mobile_data.get("direct_phone"),
+                        "mobile_phone": mobile_data.get("mobile"),
+                        "confidence_score": email_data.get("confidence", 0)
+                    }
+                    return self.format_response("prospeo", "Email found", details)
+
+                return self.format_response("prospeo", "Email not found")
+
+            except Exception as e:
+                print(f"Error in Prospeo service: {str(e)}")
+                return self.format_response("prospeo", "Error", error=str(e))
+
+        elif tool_name == "contactout":
+            try:
+                headers = {
+                    "authorization": "basic",
+                    "token": self.api_keys["contactout"]
+                }
+
+                linkedin_url = contact_details.get("linkedin_profile")
+                if not linkedin_url:
+                    return self.format_response("contactout", "Error", error="LinkedIn profile URL is required")
+
+                if not linkedin_url.startswith("http"):
+                    linkedin_url = f"https://linkedin.com/in/{linkedin_url}"
+
+                params = {
+                    "profile": linkedin_url,
+                    "include_phone": "true"
+                }
+
+                print(f"Making request to ContactOut with params: {params}")
+
+                data = self.make_request(
+                    "contactout",
+                    self.tool_configs["contactout"]["endpoint"],
+                    params=params,
+                    headers=headers,
+                    method="GET"
+                )
+
+                if data and isinstance(data, list) and len(data) > 0:
+                    person = data[0]  
+
+                    phone_numbers = []
+                    if person.get("phone_numbers"):
+                        phone_numbers.extend(person["phone_numbers"])
+                    if person.get("mobile_phone"):
+                        phone_numbers.append(person["mobile_phone"])
+                    if person.get("direct_phone"):
+                        phone_numbers.append(person["direct_phone"])
+
+                    email = None
+                    if person.get("emails"):
+                        email = person["emails"][0] if person["emails"] else None
+
+                    details = {
+                        "full_name": person.get("full_name"),
+                        "first_name": person.get("first_name"),
+                        "last_name": person.get("last_name"),
+                        "email": email,
+                        "location": person.get("location"),
+                        "company": person.get("current_company"),
+                        "position": person.get("current_title"),
+                        "linkedin": linkedin_url.split("/")[-1],
+                        "phone_numbers": phone_numbers if phone_numbers else None,
+                        "direct_phone": person.get("direct_phone"),
+                        "mobile_phone": person.get("mobile_phone"),
+                        "confidence_score": person.get("email_confidence", 0)
+                    }
+                    return self.format_response("contactout", "Email found", details)
+
+                return self.format_response("contactout", "Email not found")
+
+            except Exception as e:
+                print(f"Error in ContactOut service: {str(e)}")
+                return self.format_response("contactout", "Error", error=str(e))
+
+        elif tool_name == "icypeas":
+            try:
+                timestamp = datetime.now(timezone.utc).isoformat()
+                signature = gen_signature(
+                    self.tool_configs["icypeas"]["endpoint"],
+                    "POST",
+                    self.api_keys["icypeas"],
+                    timestamp
+                )
+
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": self.api_keys["icypeas"],
+                    "X-Signature": signature,
+                    "X-Timestamp": timestamp
+                }
+
+                params = {
+                    "firstname": contact_details.get("first_name"),
+                    "lastname": contact_details.get("last_name"),
+                    "domainOrCompany": contact_details.get("company_domain") or contact_details.get("company_name")
+                }
+
+                if contact_details.get("linkedin_profile"):
+                    linkedin_url = contact_details["linkedin_profile"]
+                    if not linkedin_url.startswith("http"):
+                        linkedin_url = f"https://linkedin.com/in/{linkedin_url}"
+                    params["linkedinUrl"] = linkedin_url
+
+                print(f"Making request to Icypeas with params: {params}")
+                print(f"Headers: {headers}")
+
+                data = self.make_request(
+                    "icypeas",
+                    self.tool_configs["icypeas"]["endpoint"],
+                    params=params,
+                    headers=headers,
+                    method="POST"
+                )
+
+                if data.get("email"):
+                    phone_numbers = []
+                    if data.get("phoneNumbers"):
+                        phone_numbers.extend(data["phoneNumbers"])
+                    if data.get("mobilePhone"):
+                        phone_numbers.append(data["mobilePhone"])
+                    if data.get("directPhone"):
+                        phone_numbers.append(data["directPhone"])
+
+                    details = {
+                        "full_name": f"{contact_details.get('first_name')} {contact_details.get('last_name')}",
+                        "first_name": contact_details.get("first_name"),
+                        "last_name": contact_details.get("last_name"),
+                        "email": data["email"],
+                        "location": data.get("location"),
+                        "company": data.get("company"),
+                        "position": data.get("position"),
+                        "linkedin": contact_details.get("linkedin_profile", "").split("/")[-1],
+                        "phone_numbers": phone_numbers if phone_numbers else None,
+                        "direct_phone": data.get("directPhone"),
+                        "mobile_phone": data.get("mobilePhone"),
+                        "confidence_score": data.get("confidence", 0),
+                        "source": "icypeas"
+                    }
+                    return self.format_response("icypeas", "Email found", details)
+
+                return self.format_response("icypeas", "Email not found")
+
+            except Exception as e:
+                print(f"Error in Icypeas service: {str(e)}")
+                return self.format_response("icypeas", "Error", error=str(e))
+
+        elif tool_name == "anymailfinder":
+            try:
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_keys['anymailfinder']}"
+                }
+
+                params = {
+                    "domain": contact_details.get("company_domain"),
+                    "first_name": contact_details.get("first_name"),
+                    "last_name": contact_details.get("last_name"),
+                    "company_name": contact_details.get("company_name"),
+                    "full_name": f"{contact_details.get('first_name', '')} {contact_details.get('last_name', '')}".strip()
+                }
+
+                print(f"Making request to Anymailfinder with params: {params}")
+
+                data = self.make_request(
+                    "anymailfinder",
+                    self.tool_configs["anymailfinder"]["endpoint"],
+                    params=params,
+                    headers=headers,
+                    method="POST"
+                )
+
+                if data.get("results", {}).get("email"):
+                    details = {
+                        "full_name": params["full_name"],
+                        "first_name": contact_details.get("first_name"),
+                        "last_name": contact_details.get("last_name"),
+                        "email": data["results"]["email"],
+                        "company": contact_details.get("company_name"),
+                        "validation": data["results"].get("validation"),
+                        "phone_numbers": None,
+                        "confidence_score": 100 if data["results"].get("validation") == "valid" else 0
+                    }
+                    return self.format_response("anymailfinder", "Email found", details)
+
+                return self.format_response("anymailfinder", "Email not found")
+
+            except Exception as e:
+                print(f"Error in Anymailfinder service: {str(e)}")
+                return self.format_response("anymailfinder", "Error", error=str(e))
+
+        elif tool_name == "enrichso":
+            try:
+                headers = {
+                    "accept": "application/json",
+                    "Authorization": f"Bearer {self.api_keys['enrichso']}"
+                }
+
+                full_name = f"{contact_details.get('first_name', '')} {contact_details.get('last_name', '')}".strip()
+                if not full_name or not contact_details.get("company_domain"):
+                    return self.format_response("enrichso", "Error", error="Full name and company domain are required for Enrich.so")
+
+                params = {
+                    "fullName": full_name,
+                    "companyDomain": contact_details.get("company_domain")
+                }
+
+                print(f"Making request to Enrich.so with params: {params}")
+
+                data = self.make_request(
+                    "enrichso",
+                    self.tool_configs["enrichso"]["endpoint"],
+                    params=params,
+                    headers=headers,
+                    method="GET"
+                )
+
+                if data.get("email"):
+                    details = {
+                        "full_name": full_name,
+                        "first_name": contact_details.get("first_name"),
+                        "last_name": contact_details.get("last_name"),
+                        "email": data["email"],
+                        "company": contact_details.get("company_name"),
+                        "phone_numbers": None,
+                        "confidence_score": data.get("confidence", 0)
+                    }
+                    return self.format_response("enrichso", "Email found", details)
+
+                return self.format_response("enrichso", "Email not found")
+
+            except Exception as e:
+                print(f"Error in Enrich.so service: {str(e)}")
+                return self.format_response("enrichso", "Error", error=str(e))
+
+        elif tool_name == "tomba":
+            try:
+                headers = {
+                    "accept": "application/json",
+                    "Authorization": f"Bearer {self.api_keys['tomba']}"
+                }
+
+                full_name = f"{contact_details.get('first_name', '')} {contact_details.get('last_name', '')}".strip()
+                if not full_name or not contact_details.get("company_domain"):
+                    return self.format_response("tomba", "Error", error="Full name and company domain are required for Tomba")
+
+                params = {
+                    "domain": contact_details.get("company_domain"),
+                    "full_name": full_name,
+                    "first_name": contact_details.get("first_name"),
+                    "last_name": contact_details.get("last_name")
+                }
+
+                print(f"Making request to Tomba with params: {params}")
+
+                data = self.make_request(
+                    "tomba",
+                    self.tool_configs["tomba"]["endpoint"],
+                    params=params,
+                    headers=headers,
+                    method="GET"
+                )
+
+                if data.get("data", {}).get("email"):
+                    details = {
+                        "full_name": full_name,
+                        "first_name": contact_details.get("first_name"),
+                        "last_name": contact_details.get("last_name"),
+                        "email": data["data"]["email"],
+                        "company": contact_details.get("company_name"),
+                        "phone_numbers": None,  
+                        "confidence_score": data["data"].get("score", 0)
+                    }
+                    return self.format_response("tomba", "Email found", details)
+
+                return self.format_response("tomba", "Email not found")
+
+            except Exception as e:
+                print(f"Error in Tomba service: {str(e)}")
+                return self.format_response("tomba", "Error", error=str(e))
+
     def get_email_data(self, contact_details: Dict) -> Dict:
         results = []
-        tools = ["hunter", "datagma", "apollo"]
+        tools = ["hunter", "datagma", "apollo", "prospeo", "contactout", "icypeas", "anymailfinder", "enrichso", "tomba"]  # Added Tomba
         start_time = time.time()
         successful_tools = 0
         found_emails = 0
@@ -325,9 +772,15 @@ class DataEnrichmentService:
                     found_emails += 1
                     if not found_email:
                         found_email = result["details"]["email"]
-                        # Collect phone numbers from the first successful result
-                        if result["details"].get("phone_numbers"):
-                            found_phones.extend(result["details"]["phone_numbers"])
+
+                    
+                    if result["details"].get("phone_numbers"):
+                        found_phones.extend(result["details"]["phone_numbers"])
+                    if result["details"].get("direct_phone"):
+                        found_phones.append(result["details"]["direct_phone"])
+                    if result["details"].get("mobile_phone"):
+                        found_phones.append(result["details"]["mobile_phone"])
+
                 elif result["status"] == "CatchAll domain":
                     successful_tools += 1
                     catch_all_domains += 1
@@ -338,6 +791,8 @@ class DataEnrichmentService:
                     "Error",
                     error=str(e)
                 ))
+
+        found_phones = list(dict.fromkeys([phone for phone in found_phones if phone]))
 
         execution_time = time.time() - start_time
 

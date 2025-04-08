@@ -24,8 +24,6 @@ class PlanChoice(models.Model):
     razorpay_plan_id = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    # Added fields
     api_access = models.BooleanField(default=False)
     bulk_processing_limit = models.IntegerField(blank=True, null=True)
     max_users = models.IntegerField(blank=True, null=True)
@@ -109,9 +107,9 @@ class SavedCard(models.Model):
     user = models.ForeignKey('users.User', on_delete=models.CASCADE, related_name='saved_cards')
     token_id = models.CharField(max_length=100, unique=True)
     card_last4 = models.CharField(max_length=4)
-    card_network = models.CharField(max_length=20)  # visa, mastercard, etc.
+    card_network = models.CharField(max_length=20)  
     card_type = models.CharField(max_length=20, choices=CARD_TYPES)
-    card_issuer = models.CharField(max_length=50, blank=True, null=True)  # bank name
+    card_issuer = models.CharField(max_length=50, blank=True, null=True)  
     expiry_month = models.CharField(max_length=2)
     expiry_year = models.CharField(max_length=4)
     cardholder_name = models.CharField(max_length=255)
