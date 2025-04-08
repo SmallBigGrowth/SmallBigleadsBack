@@ -1,6 +1,7 @@
 import requests
 from django.conf import settings
 import time
+from decouple import config
 
 class BetterContactAPI:
     def __init__(self):
@@ -100,14 +101,14 @@ class DataEnrichmentService:
             "apollo": settings.APOLLO_API_KEY,
             "prospeo": settings.PROSPEO_API_KEY,
             "contactout": settings.CONTACTOUT_API_KEY,
-            "icypeas": "5cdc96fd6619467a9dc8fd3d9371cfc5f00859593d8343d0bace1ed022e362f4",
-            "anymailfinder": "ywD9j3pN6NHqF7PRgn8uTA16",
-            "enrichso": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY3YzE1Nzg3NDJmODdhN2M3YmFmNjc2NSIsInR5cGUiOiJhcGkiLCJpYXQiOjE3NDA3MjQxMDl9.N_2KscRnxAnGavRdUEf2vuEiPoYWdRE_l7QjLRkv7Do",
-            "tomba": "ta_933y8vhkbw0uu7i4sdvnv23o8esm62cybuohh"  # Added Tomba API key
+            "icypeas": settings.ICYPEAS_API_KEY,
+            "anymailfinder": settings.ICYPEAS_API_KEY,
+            "enrichso": settings.ENRICHSO_API_KEY,
+            "tomba":settings.TOMBA_API_KEY,
         }
 
         self.api_secrets = {
-            "tomba": "ts_b3aabab7-4435-4a14-96b8-8499281712e3"  # Added Tomba secret (optional)
+            "tomba":config("TOMBA_secret")
         }
 
         self.tool_configs = {
